@@ -32,6 +32,8 @@ class cnf
 	// Indexes of clauses which are unit clauses
 	std::vector<uint16_t> idxUnitClauses_;
 
+	std::vector<bool> perThreadSatResults_;
+
 	// Finds pure variables(literals) for the cnf expression, 
 	// Optimizes them and stores indexes of found pure 
 	// variables (literals) of type POS, COMP and TRUE
@@ -54,6 +56,8 @@ class cnf
 	// Finds if the CNF expression has atleast 
 	// one pair of complementary unit clauses
 	bool findComplUnitClauses();
+
+	void evaluateClauses( unsigned int _begin, unsigned int _end, unsigned int _threadId = 0 );
 
 	// Finds first combination of boolean logic variables which satisfies the CNF Expression
 	// Returns true and satisfying variable assignment string if satisfying assignment found

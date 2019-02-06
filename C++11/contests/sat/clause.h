@@ -31,9 +31,6 @@ public:
 	void appendLiteral( literal & _literal );
 	std::vector< literal* > getLiterals() const;
 
-	// returns current state of the clause
-	ClauseState getClauseState() const;
-
 	// returns true if unit propogation was done for the clause. otherwise returns false
 	bool optimizeUnitPropagate();
 

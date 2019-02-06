@@ -5,6 +5,7 @@
 #include <cassert>
 #include <algorithm>
 #include <iostream>
+#include <thread>
 
 cnf::cnf() : isSat_( false )
 {
@@ -24,16 +25,6 @@ void cnf::appendVariable( variable & _variable )
 	variables_.push_back( &_variable);
 }
 
-std::vector<clause*> cnf::getClauses() const
-{
-	return this->clauses_;
-}
-
-std::vector<variable*> cnf::getVariables() const
-{
-	return this->variables_;
-}
-
 bool cnf::optimizePureVariableLiterals()
 {
 	// If a variable has same literal form (either positive or complement) 
@@ -43,7 +34,7 @@ bool cnf::optimizePureVariableLiterals()
 	{
 		auto isVarPure = true;
 		auto clIdx = 0;
-		LiteralType firstClauseLitType;
+		LiteralType firstClauseLitType = LiteralType::LT_FALSE;
 
 		for ( auto cl : this->clauses_ )
 		{
@@ -215,8 +206,67 @@ bool cnf::findComplUnitClauses()
 	return found;
 }
 
+void cnf::evaluateClauses( unsigned int _begin, unsigned int _end, unsigned int _threadId )
+{
+	bool isSat = true;
+	for ( unsigned int i = _begin; i < _end; ++i )
+	{
+		isSat = isSat && this->clauses_[i]->evaluateClause( this->variables_ );
+	}
+	this->perThreadSatResults_[_threadId] = this->perThreadSatResults_[_threadId] && isSat;
+}
+
+static void parallel_for( unsigned int _threadCnt, 
+						  unsigned int _cntElements, 
+						  std::function<void ( unsigned int _begin, unsigned int _end, unsigned int _threadId )> _functor,
+						  bool _isMultiThreaded = true )
+{
+	auto elemsPerThread = _cntElements / _threadCnt;
+	auto remElems = _cntElements % _threadCnt;
+
+	std::vector<std::thread> workerThreads( _threadCnt );
+
+	if ( _isMultiThreaded )
+	{
+		// Launch worker threads with assigned elements per thread
+		for( unsigned int i = 0; i < _threadCnt; ++i )
+		{
+			auto begin = i * elemsPerThread;
+			workerThreads[i] = std::thread( _functor, begin, begin + elemsPerThread, i );
+		}
+	}
+	else
+	{
+		for( unsigned  int i = 0; i < _threadCnt; ++i )
+		{
+			auto begin = i * elemsPerThread;
+			_functor( begin, begin + elemsPerThread, i );
+		}
+	}
+
+	// The remaining elements are processed by current thread
+	// and merged with results of thread id 0
+	auto begin = _threadCnt * elemsPerThread;
+	_functor( begin, begin + remElems, 0 );
+
+	if( _isMultiThreaded )
+	{
+		// Join threads (waiting for all threads to finish)
+		for( auto & workerThread : workerThreads )
+		{
+			workerThread.join();
+		}
+	}
+}
+
 bool cnf::findFirstSatVariableAssignment( std::string & _firstSatVariableAssignment )
 {
+	unsigned int threadCnt = std::thread::hardware_concurrency();
+	for ( unsigned int i = 0; i < threadCnt; ++i )
+	{
+		perThreadSatResults_.push_back( true );
+	}
+
 	std::vector<bool> variableLogicCombination( this->variables_.size(), true );
 
 	for ( auto varidx = 0; varidx < variables_.size(); ++varidx )
@@ -248,11 +298,20 @@ bool cnf::findFirstSatVariableAssignment( std::string & _firstSatVariableAssignm
 				++idx;
 			}
 
-			// Evaluate AND of all clauses for the variable assignment
-			for ( auto cl : this->clauses_ )
-			{
-				this->isSat_ = this->isSat_ && cl->evaluateClause( this->variables_ );
-			}
+			// Evaluate AND of all clauses for the variable assignment in parallel
+			parallel_for( threadCnt,
+						  static_cast<unsigned int>( this->clauses_.size() ), 
+						  [this]( unsigned int begin, unsigned int end, unsigned int threadIdx ){ this->evaluateClauses( begin, end, threadIdx ); } );
+
+			// Merge sat results from all threads
+			for( auto thIsSat: this->perThreadSatResults_ )
+				this->isSat_ = this->isSat_ && thIsSat;
+			
+			//// Sequential is very slow
+			//for ( auto cl : this->clauses_ )
+			//{
+			//	this->isSat_ = this->isSat_ && cl->evaluateClause( this->variables_ );
+			//}
 
 			// Check if this variable assignment satisfies the CNF expression
 			if ( this->isSat_ )

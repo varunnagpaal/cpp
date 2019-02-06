@@ -27,11 +27,6 @@ LiteralType literal::getLiteralType() const
 	return this->literalType_;
 }
 
-void literal::setLiteralType( LiteralType _literalType )
-{
-	this->literalType_ = _literalType;
-}
-
 LiteralState literal::getLiteralState() const
 {
 	return this->literalState_;
@@ -45,11 +40,6 @@ void literal::setLiteralState( LiteralState _literalState )
 bool literal::getLiteralSatValue() const
 {
 	return this->isLiteralSat_;
-}
-
-void literal::setLiteralSatValue(bool _literalSatValue)
-{
-	this->isLiteralSat_ = _literalSatValue;
 }
 
 //void literal::addClause( clause * _parentClause )

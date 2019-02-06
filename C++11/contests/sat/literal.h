@@ -61,13 +61,11 @@ public:
 	~literal();
 
 	LiteralType getLiteralType() const;
-	void setLiteralType( LiteralType _literalType );
 
 	LiteralState getLiteralState() const;
 	void setLiteralState( LiteralState _literalState );
 
 	bool getLiteralSatValue() const;
-	void setLiteralSatValue( bool _literalSatValue );
 
 	//void addClause( clause* _parentClause );
 

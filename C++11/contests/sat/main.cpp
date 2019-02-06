@@ -52,6 +52,10 @@ int parseCnfFile(int argc, char *argv[], cnf & _cnfExpression )
 			}
 			else if ( nextToken == '0' )
 			{
+#ifdef _DEBUG
+				assert( currentClause != nullptr );
+#endif // _DEBUG
+
 				// Start a new literal: static 0 form of x of a variable x
 				bool logicalSatValue = false;
 				literal *currentLiteral = new literal( LiteralType::LT_FALSE, 
@@ -71,6 +75,10 @@ int parseCnfFile(int argc, char *argv[], cnf & _cnfExpression )
 			}
 			else if ( nextToken == '1' )
 			{
+#ifdef _DEBUG
+				assert( currentClause != nullptr );
+#endif // _DEBUG
+
 				bool logicalSatValue;
 				LiteralType litType;
 				
@@ -106,6 +114,8 @@ int parseCnfFile(int argc, char *argv[], cnf & _cnfExpression )
 			else if ( nextToken == ')' )
 			{
 #ifdef _DEBUG
+				assert( currentClause != nullptr );
+
 				// TBU: what to do with empty clauses
 				if ( currentClause->getLiterals().empty() )
 				{

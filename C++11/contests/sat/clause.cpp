@@ -20,11 +20,6 @@ std::vector<literal*> clause::getLiterals() const
 	return this->literals;
 }
 
-ClauseState clause::getClauseState() const
-{
-	return this->clauseState_;
-}
-
 // returns true if unit propogation was done. otherwise returns false
 bool clause::optimizeUnitPropagate()
 {
